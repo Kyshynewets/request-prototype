@@ -601,6 +601,38 @@
 console.log("SCRIPT LOADED");
 
 /* ---------- CONFIG DATA ---------- */
+
+const EXCHANGE_TEMPLATES = {
+  rules: `Kindly provide the fare rules for the following PNR(s).
+Exchange / Refund / Cancel For Future Usage.`,
+
+  difference: `Please advise on the fare and tax difference, including any applicable change fees for the new option(s):
+  
+  #1
+  
+  
+  #2`,
+
+  refund: `Please advise on the refundable amount for the selected ticket(s).`
+};
+
+function appendTemplate(text) {
+  const current = requestDetails.value.trim();
+
+  // если поле пустое — просто вставляем текст
+  if (!current) {
+    requestDetails.value = text;
+    return;
+  }
+
+  // если этот текст уже есть — не дублируем
+  if (current.includes(text)) return;
+
+  // иначе добавляем через пустую строку
+  requestDetails.value = current + '\n\n' + text;
+}
+
+
 const REQUEST_TYPES = [
   { key:'exchange', label:'Exchange/Refund Inquiry' },
   { key:'assignments', label:'Assignments', hasSub:true },
@@ -739,48 +771,27 @@ const tplFD = document.getElementById('tplFD');
 const tplRules = document.getElementById('tplRules');
 const tplRefund = document.getElementById('tplRefund');
 
-if (tplFD && tplRules && tplRefund) {
+ if (tplFD && tplRules && tplRefund) {
 
-  // Fare / Tax Difference
-  tplFD.addEventListener('click', () => {
-    requestDetails.value =
-`Please advise on the fare/tax difference and change fees for the following option(s):
+// Fare Rules
+tplRules.addEventListener('click', () => {
+  appendTemplate(EXCHANGE_TEMPLATES.rules);
+  requestDetails.focus();
+});
 
+// Fare / Tax Difference
+tplFD.addEventListener('click', () => {
+  appendTemplate(EXCHANGE_TEMPLATES.difference);
+  requestDetails.focus();
+});
 
-#1
+// Refund Inquiry
+tplRefund.addEventListener('click', () => {
+  appendTemplate(EXCHANGE_TEMPLATES.refund);
+  requestDetails.focus();
+});
+ 
 
-
-#2
-
-
-`;
-    requestDetails.focus();
-  });
-
-  // Fare Rules
-  tplRules.addEventListener('click', () => {
-    requestDetails.value =
-`Kindly provide the fare rules for the following PNR(s).
-
-Exchange / Refund / Cancel For Future Usage.`;
-    requestDetails.focus();
-  });
-
-  // Refund Inquiry
-  tplRefund.addEventListener('click', () => {
-
-    const selectedPnrs = getSelectedPnrs();
-    const selectedPassengers = getSelectedPassengers();
-
-    const isMultiple =
-      selectedPnrs.length > 1 || selectedPassengers.length > 1;
-
-    requestDetails.value = isMultiple
-      ? 'Please advise on the refundable amount for these tickets.'
-      : 'Please advise on the refundable amount for this ticket.';
-
-    requestDetails.focus();
-  });
 }
 
 
@@ -1376,3 +1387,4 @@ buildMainList();
 </script>
 </body>
 </html>
+
