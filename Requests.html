@@ -1,0 +1,1378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Request Prototype</title>
+  <style>
+    :root{
+      --bg:#020617;
+      --panel:#050b18;
+      --card:#070f23;
+      --border:#1e293b;
+      --text:#e5e7eb;
+      --muted:#94a3b8;
+      --accent:#3b82f6;
+      --accent-soft:#2563eb;
+      --danger:#f97316;
+      --shadow:0 20px 60px rgba(15,23,42,.75);
+      --radius:18px;
+      --transition:200ms ease;
+    }
+    *{box-sizing:border-box;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+  body{
+  margin:0;
+  background:radial-gradient(circle at top,#0b1120 0,#020617 60%);
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:flex-start;   /* ✅ ВОТ ЭТО */
+  color:var(--text);
+  padding:120px 12px 32px;      /* ✅ фиксируем визуальный якорь */
+}
+
+    /* MAIN BUTTON */
+
+    #createBtn{
+  display: none;
+      background:radial-gradient(circle at 30% 0,#60a5fa 0,#2563eb 45%,#1d4ed8 100%);
+      color:#fff;
+      border:none;
+      border-radius:999px;
+      padding:14px 40px;
+      font-size:16px;
+      font-weight:600;
+      cursor:pointer;
+      box-shadow:0 18px 45px rgba(37,99,235,.55);
+      margin-bottom:28px;
+      transition:transform .15s ease,box-shadow .15s ease;
+    }
+    #createBtn:hover{transform:translateY(-1px);box-shadow:0 24px 60px rgba(37,99,235,.7);}
+    #createBtn:active{transform:translateY(1px);box-shadow:0 14px 35px rgba(15,23,42,.8);}
+
+    /* SELECTOR PANEL */
+#selectorWrapper{
+  display: none;
+  background: var(--panel);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  padding: 14px 18px 18px;
+
+  min-width: 420px;
+  max-width: 960px;
+  min-height: 260px;
+
+  transition:
+    width 260ms cubic-bezier(.4,0,.2,1),
+    min-height 180ms ease;
+}
+    #selectorWrapper.single{width:420px;}
+    #selectorWrapper.double{width:720px;}
+    #selectorWrapper.triple{width:960px;}
+
+    .selector-header{
+      text-align:center;
+      color:var(--muted);
+      font-size:11px;
+      letter-spacing:.16em;
+      text-transform:uppercase;
+      margin-bottom:6px;
+    }
+    .selector-body{
+      display:flex;
+      gap:0;
+    }
+.selector-col{
+  opacity: 0;
+  transform: translateX(-16px);
+
+  transition:
+    opacity 220ms cubic-bezier(.4,0,.2,1),
+    transform 220ms cubic-bezier(.4,0,.2,1);
+
+  pointer-events: none;
+}
+
+.selector-col.visible{
+  opacity:1;
+  transform:translateX(0);
+  pointer-events:auto;
+}
+
+#colSub{
+  transition-delay: 40ms;
+}
+
+#colDetails{
+  transition-delay: 80ms;
+}
+
+    .selector-col + .selector-col{
+      border-left:1px solid #0b1220;
+    }
+    .selector-col h4{
+      margin:2px 8px 6px;
+      font-size:11px;
+      text-transform:uppercase;
+      letter-spacing:.16em;
+      color:var(--muted);
+    }
+    .list{
+      min-width:180px;
+    }
+    .item{
+      padding:8px 10px;
+      margin:2px 4px;
+      border-radius:999px;
+      font-size:13px;
+      color:var(--text);
+      cursor:pointer;
+      white-space:nowrap;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+    }
+    .item span.label{flex:1;}
+    .item span.chevron{
+      margin-left:8px;
+      color:#64748b;
+      font-size:20px;
+    }
+    .item:hover{background:#0b1120;}
+    .item.active{background:#111827;}
+
+    .placeholder{
+      padding:12px 10px;
+      font-size:13px;
+      color:var(--muted);
+      min-width:220px;
+    }
+
+    /* MODAL FORM */
+    #formOverlay{
+      position:fixed;
+      inset:0;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      background:rgba(15,23,42,.8);
+      z-index:50;
+    }
+    #formModal{
+      background:var(--panel);
+      border-radius:var(--radius);
+      border:1px solid var(--border);
+      box-shadow:var(--shadow);
+      width:min(1120px,96vw);
+      max-height:90vh;
+      padding:16px 18px 14px;
+      display:flex;
+      flex-direction:column;
+    }
+    .form-header{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin-bottom:8px;
+      gap:12px;
+    }
+    .form-title{
+      font-size:15px;
+      font-weight:600;
+    }
+    .chip{
+      background:#0f172a;
+      border-radius:999px;
+      padding:3px 10px;
+      border:1px solid #1d4ed8;
+      font-size:11px;
+      color:#bfdbfe;
+      margin-left:4px;
+    }
+    .close-x{
+      background:#020617;
+      border:1px solid #1f2937;
+      border-radius:999px;
+      color:#9ca3af;
+      width:28px;
+      height:28px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      cursor:pointer;
+      font-size:13px;
+    }
+    .close-x:hover{background:#111827;}
+
+    .form-body{
+      display:grid;
+      grid-template-columns:1.4fr .8fr;
+      gap:14px;
+      margin-top:6px;
+    }
+    label{
+      font-size:11px;
+      color:var(--muted);
+      margin-bottom:4px;
+      display:block;
+    }
+    textarea,input{
+      width:100%;
+      background:#020617;
+      border-radius:10px;
+      border:1px solid #1f2937;
+      color:var(--text);
+      font-size:13px;
+      padding:8px 9px;
+      resize:vertical;
+    }
+    textarea:focus,input:focus{outline:none;border-color:#2563eb;box-shadow:0 0 0 1px rgba(37,99,235,.4);}
+    #requestDetails{
+      min-height:260px;
+      max-height:380px;
+    }
+    #financialRow{margin-top:8px;}
+
+    .upload-box{
+      margin-top:10px;
+    }
+    .upload-drop{
+      border:2px dashed #1d4ed8;
+      border-radius:12px;
+      padding:16px;
+      text-align:center;
+      font-size:13px;
+      color:#93c5fd;
+    }
+    .upload-drop span{display:block;font-size:11px;color:#60a5fa;margin-top:4px;}
+    .warning{
+      margin-top:6px;
+      border-radius:10px;
+      padding:6px 10px;
+      font-size:11px;
+      background:#2b1c09;
+      border:1px solid #92400e;
+      color:#fbbf24;
+    }
+
+    .side-panel{
+      background:#020617;
+      border-radius:12px;
+      border:1px solid #111827;
+      padding:8px 10px;
+      margin-bottom:8px;
+    }
+    .side-title{
+      font-size:11px;
+      color:var(--muted);
+      margin-bottom:6px;
+    }
+
+    .pnr-row,.passenger-row{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+      font-size:13px;
+      padding:4px 2px;
+    }
+    .pnr-label,.passenger-label{
+      flex:1;
+      white-space:nowrap;
+    }
+    .pnr-row input,.passenger-row input{
+      width:16px;
+      height:16px;
+      accent-color:#22c55e;
+      cursor:pointer;
+    }
+
+    .form-footer{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      margin-top:10px;
+      gap:10px;
+    }
+    .btn-row-right{
+      display:flex;
+      gap:8px;
+      align-items:center;
+    }
+    .btn{
+      border:none;
+      border-radius:10px;
+      padding:8px 14px;
+      font-size:13px;
+      cursor:pointer;
+      transition:background var(--transition),transform .1s ease,box-shadow .1s ease;
+    }
+    .btn-primary{
+      background:linear-gradient(180deg,var(--accent),var(--accent-soft));
+      color:#fff;
+      box-shadow:0 10px 30px rgba(37,99,235,.55);
+    }
+    .btn-primary:hover{transform:translateY(-1px);box-shadow:0 14px 36px rgba(37,99,235,.75);}
+    .btn-primary:active{transform:translateY(1px);box-shadow:0 8px 20px rgba(15,23,42,.9);}
+    .btn-secondary{
+      background:#020617;
+      border:1px solid #1f2937;
+      color:var(--muted);
+    }
+    .btn-secondary:hover{background:#020617;border-color:#374151;color:#e5e7eb;}
+
+    /* EMAIL PREVIEW */
+    #previewPanel{
+  margin-top:10px;
+  background:#020617;
+  border-radius:12px;
+  border:1px solid #111827;
+  padding:10px 11px;
+  font-family:"SF Mono","Consolas","Roboto Mono",monospace;
+  font-size:12px;
+  color:#e5e7eb;
+  white-space:pre-wrap;
+}
+    #previewPanel.empty{display:none;}
+
+    /* SUCCESS TOAST */
+    #successToast{
+      position:fixed;
+      inset:0;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      z-index:80;
+      pointer-events:none;
+    }
+    #successToast .toast-box{
+      pointer-events:auto;
+      background:#022c22;
+      border:1px solid #10b981;
+      color:#a7f3d0;
+      padding:14px 22px;
+      border-radius:999px;
+      box-shadow:0 18px 40px rgba(6,95,70,.8);
+      font-size:14px;
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+
+    @media (max-width:900px){
+      #formModal{width:96vw;}
+      .form-body{grid-template-columns:1fr;}
+    }
+/* EMAIL COLORS */
+.mail{font-weight:600;}
+
+.mail.cs{
+  color:#fb7185;   /* розовый */
+}
+
+.mail.ticketing{
+  color:#3b82f6;   /* синий */
+}
+
+.mail.rev{
+  color:#22c55e;   /* зелёный */
+}
+
+/* Exchange Inquiry Templates */
+#exchangeTemplates{
+  display:flex;
+  gap:10px;
+  margin-top:12px;
+}
+
+/* TEMPLATE BUTTON STYLE (same as Create Request) */
+.tpl-btn{
+  background:radial-gradient(circle at 30% 0,#60a5fa 0,#2563eb 45%,#1d4ed8 100%);
+  color:#ffffff;
+  border:none;
+  border-radius:999px;
+  padding:8px 20px;
+  font-size:13px;
+  font-weight:600;
+  cursor:pointer;
+  box-shadow:0 6px 16px rgba(37,99,235,0.32);  /* мягкий glow */
+  transition:transform .15s ease, box-shadow .15s ease;
+}
+
+.tpl-btn:hover{
+  transform:translateY(-1px);
+  box-shadow:0 10px 22px rgba(37,99,235,0.38); /* контролируемый hover-glow */
+}
+
+.tpl-btn:active{
+  transform:translateY(1px);
+  box-shadow:0 4px 12px rgba(15,23,42,0.45);
+}
+
+/* Clickable Website Link — brighter blue */
+.mail-link {
+  color: #3b82f6;         /* яркий насыщенный синий */
+  text-decoration: underline;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.mail-link:hover {
+  color: #60a5fa;         /* еще ярче при наведении */
+}
+
+#fabRequest{
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+
+  height: 56px;
+  width: 56px;                 /* старт: только кружок */
+  border-radius: 999px;
+
+  background: radial-gradient(circle at 30% 0,#60a5fa 0,#2563eb 45%,#1d4ed8 100%);
+  box-shadow: 0 18px 40px rgba(37,99,235,.55);
+
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  cursor: pointer;
+
+  transition: width 220ms ease, box-shadow 220ms ease;
+  z-index: 9999;
+}
+
+.fab-circle{
+  width: 56px;
+  height: 56px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  flex-shrink: 0;
+}
+
+.fab-label{
+  margin-left: 8px;
+  padding-right: 18px;
+
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+
+
+#fabRequest:hover{
+  width: 200px;
+  box-shadow: 0 24px 60px rgba(37,99,235,.75);
+}
+
+#fabRequest:active{
+  transform: translateY(1px);
+}
+
+.fab-icon{
+  font-size: 22px;
+  line-height: 1;
+  color: #fff;
+}
+
+
+#fabRequest:hover{
+  width: 200px;
+  box-shadow: 0 24px 60px rgba(37,99,235,.75);
+}
+
+#fabRequest:hover .fab-label{
+  opacity: 1;
+}
+
+  </style>
+</head>
+<body>
+  <button id="createBtn">Create Request</button>
+
+  <!-- SELECTOR -->
+  <div id="selectorWrapper" class="single">
+    <div class="selector-header">Request Type</div>
+    <div class="selector-body">
+      <div class="selector-col" id="colMain">
+        <div id="mainList" class="list"></div>
+      </div>
+      <div class="selector-col" id="colSub" style="display:none;">
+        <h4>Sub-category</h4>
+        <div id="subList" class="list"></div>
+      </div>
+      <div class="selector-col" id="colDetails" style="display:none;">
+        <h4>Additional Details</h4>
+        <div id="detailsList" class="list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FORM MODAL -->
+  <div id="formOverlay">
+    <div id="formModal">
+      <div class="form-header">
+        <div class="form-title">Create Request • <span id="pathChip" class="chip"></span></div>
+        <button class="close-x" id="closeForm">✕</button>
+      </div>
+      <div class="form-body">
+        <div>
+          <label for="requestDetails">Request details</label>
+          <textarea id="requestDetails" placeholder="Describe your request..."></textarea>
+
+<!-- Hotel/Car Link Input -->
+<div id="hotelCarLinkRow" style="margin-top:10px; display:none;">
+  <label for="hotelCarLink">Hotel / Car Link</label>
+  <input id="hotelCarLink" placeholder="Paste Website Link here...">
+</div>
+
+<!-- Exchange/Refund Inquiry Templates -->
+<div id="exchangeTemplates" style="display:none;">
+   <button type="button" class="tpl-btn" id="tplRules">Fare Rules</button>
+    <button type="button" class="tpl-btn" id="tplFD">Fare/Tax Difference</button>    
+    <button type="button" class="tpl-btn" id="tplRefund">Refund Inquiry</button>
+</div>
+          <div id="financialRow" style="display:none;">
+            <label for="financialInput">Financial Instructions</label>
+            <input id="financialInput" placeholder="Add financial instructions here...">
+          </div>
+
+          <div class="upload-box">
+            <div class="upload-drop">
+              Drag Files Here
+              <span>(max 32MB, not actually uploaded in this prototype)</span>
+            </div>
+          </div>
+          <div class="warning" id="warningBox">
+  Requests with limited / wrong info may be declined.
+</div>
+        </div>
+
+        <div>
+          <div class="side-panel">
+            <div class="side-title">PNR</div>
+            <div id="pnrContainer"></div>
+          </div>
+          <div class="side-panel">
+            <div class="side-title">Passengers</div>
+            <div id="passengerContainer"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-footer">
+        <div style="font-size:11px;color:var(--muted);" id="routingHint"></div>
+        <div class="btn-row-right">
+          <button class="btn btn-secondary" id="backToTypes">Back</button>
+          <button class="btn btn-secondary" id="previewBtn">Preview Email</button>
+          <button class="btn btn-primary" id="sendBtn">Send</button>
+        </div>
+      </div>
+
+      <div id="previewPanel" class="empty"></div>
+    </div>
+  </div>
+
+  <!-- SUCCESS TOAST -->
+  <div id="successToast">
+    <div class="toast-box">
+      ✅ Email Request Sent!
+    </div>
+  </div>
+
+<div id="fabRequest">
+  <div class="fab-circle">
+    <span class="fab-icon">⚒</span>
+  </div>
+  <span class="fab-label">Create Request</span>
+</div>
+
+
+<script>
+
+console.log("SCRIPT LOADED");
+
+/* ---------- CONFIG DATA ---------- */
+const REQUEST_TYPES = [
+  { key:'exchange', label:'Exchange/Refund Inquiry' },
+  { key:'assignments', label:'Assignments', hasSub:true },
+  { key:'hotelcar', label:'Hotel/Car' },
+  { key:'voidRefund', label:'Void and Refund Request', needsFinancial:true },
+  { key:'voidReissue', label:'Void and Reissuance Request', needsFinancial:true },
+
+  // ⭐ NEW CATEGORY ⭐
+  { key:'pointsTransfer', label:'Points Transfer' },
+
+  { key:'urgent', label:'Urgent Request', hasSub:true },
+  { key:'misc', label:'Misc Request', hasSub:true },
+];
+
+const SUB_CATEGORIES = {
+    assignments: [
+        { key:'wheelchair', label:'Wheelchair', hasDetails:true },
+        { key:'pets', label:'Pets', hasDetails:true },
+        { key:'seat', label:'Seat' },
+        { key:'meal', label:'Meal' },
+        { key:'baggage', label:'Baggage' },
+
+        { key:'ffn', label:'Frequent Flyer' },
+        { key:'ktn', label:'Known Traveler' },
+        { key:'globalEntry', label:'Global Entry' },
+        { key:'tsaPre', label:'TSA PreCheck' },
+        { key:'appis', label:'APPIS' },
+        { key:'infantChild', label:'Infant/Child' },
+        { key:'osr', label:'Other Service Request' }
+    ],
+
+    urgent: [
+        { key:'delay', label:'Flight delay & misconnection' },
+        { key:'denied', label:'Denied boarding' },
+        { key:'noShow', label:'No show' }
+    ],
+
+    misc: [
+        { key:'lost', label:'Lost luggage', hasDetails:false },
+        { key:'downgrade', label:'Downgraded flight', hasDetails:false },
+        { key:'other', label:'Other', hasDetails:false }
+    ]
+};
+const DETAILS = {
+  wheelchair: [
+    'WCHS - Passenger can walk',
+    'WCHR - Passenger walks up stairs',
+    'WCHC - Passenger must be carried',
+    'Personal Wheelchair'
+  ],
+  pets: [
+    'Pets in Cabin',
+    'Pets in Cargo',
+    'Service Animals'
+  ]
+}
+
+const PNR_DATA = [
+  {
+    id:'CJYMLW',
+    label:'CJYMLW - J98K LH',
+    group:'rev',
+    airline:'LH',
+    tickets:{
+      alexandre:'2204567891011',
+      rocky:'2204567891012'
+    }
+  },
+  {
+    id:'7ZLUTA',
+    label:'7ZLUTA - UE07 TK',
+    group:'rev',
+    airline:'TK',
+    tickets:{
+      alexandre:'2354567891123',
+      rocky:'23545678911234'
+    }
+  },
+  {
+    id:'HXGOBU',
+    label:'HXGOBU - Online AF',
+    group:'online',
+    airline:'AF',
+    tickets:{
+      alexandre:'0574567891456',
+      rocky:'2354567891798'
+    }
+  },
+  {
+    id:'HFEKZR',
+    label:'HFEKZR - Award AV',
+    group:'award',
+    airline:'AV',
+    tickets:{
+      alexandre:'1344567891456',
+      rocky:'1344567891798'
+    }
+  }
+];
+
+const PASSENGERS = [
+  { id:'alexandre', name:'Alexandre Trottierlapointe' },
+  { id:'rocky', name:'Rocky Trottierlapointe' }
+];
+
+// ---------- PNR TYPE DOT ----------
+function pnrDot(group){
+  if (group === 'rev') return '🟩';
+  if (group === 'online') return '🟦';
+  if (group === 'award') return '🟧';
+  return '⬜';
+}
+
+/* ---------- ELEMENTS ---------- */
+const createBtn = document.getElementById('createBtn');
+const selectorWrapper = document.getElementById('selectorWrapper');
+const mainList = document.getElementById('mainList');
+const subList = document.getElementById('subList');
+const detailsList = document.getElementById('detailsList');
+const colSub = document.getElementById('colSub');
+const colDetails = document.getElementById('colDetails');
+
+const formOverlay = document.getElementById('formOverlay');
+const formModal = document.getElementById('formModal');
+const pathChip = document.getElementById('pathChip');
+const closeForm = document.getElementById('closeForm');
+const backToTypes = document.getElementById('backToTypes');
+const requestDetails = document.getElementById('requestDetails');
+const financialRow = document.getElementById('financialRow');
+const financialInput = document.getElementById('financialInput');
+const pnrContainer = document.getElementById('pnrContainer');
+const passengerContainer = document.getElementById('passengerContainer');
+const previewPanel = document.getElementById('previewPanel');
+const previewBtn = document.getElementById('previewBtn');
+const tplFD = document.getElementById('tplFD');
+const tplRules = document.getElementById('tplRules');
+const tplRefund = document.getElementById('tplRefund');
+
+if (tplFD && tplRules && tplRefund) {
+
+  // Fare / Tax Difference
+  tplFD.addEventListener('click', () => {
+    requestDetails.value =
+`Please advise on the fare/tax difference and change fees for the following option(s):
+
+
+#1
+
+
+#2
+
+
+`;
+    requestDetails.focus();
+  });
+
+  // Fare Rules
+  tplRules.addEventListener('click', () => {
+    requestDetails.value =
+`Kindly provide the fare rules for the following PNR(s).
+
+Exchange / Refund / Cancel For Future Usage.`;
+    requestDetails.focus();
+  });
+
+  // Refund Inquiry
+  tplRefund.addEventListener('click', () => {
+
+    const selectedPnrs = getSelectedPnrs();
+    const selectedPassengers = getSelectedPassengers();
+
+    const isMultiple =
+      selectedPnrs.length > 1 || selectedPassengers.length > 1;
+
+    requestDetails.value = isMultiple
+      ? 'Please advise on the refundable amount for these tickets.'
+      : 'Please advise on the refundable amount for this ticket.';
+
+    requestDetails.focus();
+  });
+}
+
+
+const sendBtn = document.getElementById('sendBtn');
+const routingHint = document.getElementById('routingHint');
+const successToast = document.getElementById('successToast');
+
+/* ---------- STATE ---------- */
+let selectedMain = null;
+let selectedSub = null;
+let selectedDetail = null;
+
+/* ---------- BUILD MAIN LIST ---------- */
+function buildMainList(){
+  mainList.innerHTML='';
+  REQUEST_TYPES.forEach(rt=>{
+    const div=document.createElement('div');
+    div.className='item';
+    div.dataset.key=rt.key;
+    const labelSpan=document.createElement('span');
+    labelSpan.className='label';
+    labelSpan.textContent=rt.label;
+    div.appendChild(labelSpan);
+    if(rt.hasSub){
+      const chev=document.createElement('span');
+      chev.className='chevron';
+      chev.textContent='›';
+      div.appendChild(chev);
+    }
+    div.addEventListener('click',()=>onMainClick(rt));
+    mainList.appendChild(div);
+  });
+}
+
+function onMainClick(rt){
+  selectedMain = rt;
+  selectedSub = null;
+  selectedDetail = null;
+
+  highlightActive(mainList, rt.key);
+
+  // скрываем детали всегда
+  colDetails.classList.remove('visible');
+  colDetails.style.display = 'none';
+
+  if(rt.hasSub){
+    buildSubList(rt.key);
+
+    selectorWrapper.className = 'double';
+    colSub.style.display = 'block';
+
+    requestAnimationFrame(() => {
+      colSub.classList.add('visible');
+    });
+  } else {
+    openForm();
+  }
+}
+
+
+function buildSubList(mainKey){
+  subList.innerHTML='';
+  const list=SUB_CATEGORIES[mainKey]||[];
+  list.forEach(sc=>{
+    const div=document.createElement('div');
+    div.className='item';
+    div.dataset.key=sc.key;
+    const labelSpan=document.createElement('span');
+    labelSpan.className='label';
+    labelSpan.textContent=sc.label;
+    div.appendChild(labelSpan);
+    if(sc.hasDetails){
+      const chev=document.createElement('span');
+      chev.className='chevron';
+      chev.textContent='›';
+      div.appendChild(chev);
+    }
+    div.addEventListener('click',()=>onSubClick(sc));
+    subList.appendChild(div);
+  });
+}
+
+function onSubClick(sc){
+  selectedSub = sc;
+  selectedDetail = null;
+
+  highlightActive(subList, sc.key);
+
+  if(sc.hasDetails && DETAILS[sc.key]){
+    buildDetailsList(sc.key);
+
+    selectorWrapper.className = 'triple';
+
+    colDetails.style.display = 'block';
+
+    requestAnimationFrame(() => {
+      colDetails.classList.add('visible');
+    });
+  }else{
+    openForm();
+  }
+}
+
+function buildDetailsList(subKey){
+  detailsList.innerHTML='';
+  const items=DETAILS[subKey]||[];
+  items.forEach((txt,idx)=>{
+    const div=document.createElement('div');
+    div.className='item';
+    div.dataset.idx=idx;
+    div.textContent=txt;
+    div.addEventListener('click',()=>{
+      selectedDetail=txt;
+      highlightActive(detailsList,String(idx));
+      openForm();
+    });
+    detailsList.appendChild(div);
+  });
+}
+
+function highlightActive(container,key){
+  [...container.children].forEach(el=>{
+    if(el.dataset.key===key || el.dataset.idx===key){el.classList.add('active');}
+    else el.classList.remove('active');
+  });
+}
+
+
+const PETS_TEMPLATE = `Pet passport:
+Species (dog, cat, etc.):
+Breed:
+Age:
+Gender:
+Weight of the pet:
+Weight of the kennel/carrier:
+Dimensions of the kennel (length × width × height):
+Valid health certificate / veterinary certificate:
+Proof of vaccinations:`;
+
+
+/* ---------- FORM OPEN / CLOSE ---------- */
+function openForm(){
+
+  // 🔽 RESET selector columns before opening form
+  selectorWrapper.className = 'single';
+
+  colSub.classList.remove('visible');
+  colDetails.classList.remove('visible');
+
+  colSub.style.display = 'none';
+  colDetails.style.display = 'none';
+
+  const pathParts = [];
+  if(selectedMain) pathParts.push(selectedMain.label);
+  if(selectedSub) pathParts.push(selectedSub.label);
+  if(selectedDetail) pathParts.push(selectedDetail);
+
+  pathChip.textContent = pathParts.join(' / ') || 'Unknown';
+
+
+// show / hide Financial Instructions
+if(selectedMain && (selectedMain.key === 'voidRefund' || selectedMain.key === 'voidReissue')){
+  financialRow.style.display = 'block';
+}else{
+  financialRow.style.display = 'none';
+  financialInput.value = '';
+}
+
+// show Exchange Inquiry templates
+const exchangeTplBox = document.getElementById('exchangeTemplates');
+
+if(selectedMain && selectedMain.key === 'exchange'){
+  exchangeTplBox.style.display = 'flex';
+}else{
+  exchangeTplBox.style.display = 'none';
+}
+
+// ---------------------------------------------
+// Set warning text for Points Transfer
+// ---------------------------------------------
+const warningBox = document.getElementById('warningBox');
+
+if (selectedMain && selectedMain.label === 'Points Transfer') {
+  warningBox.textContent = "Driver's License must be attached!";
+} else {
+  warningBox.textContent = "Requests with limited / wrong info may be declined.";
+}
+
+// Hide PNR + Passenger panels for Points Transfer
+if (selectedMain && selectedMain.label === 'Points Transfer') {
+
+  // Hide PNR section
+  document.querySelector('#pnrContainer').parentElement.style.display = 'none';
+
+  // Hide Passengers section
+  document.querySelector('#passengerContainer').parentElement.style.display = 'none';
+
+} else {
+
+  // Show PNR section
+  document.querySelector('#pnrContainer').parentElement.style.display = '';
+
+  // Show Passengers section
+  document.querySelector('#passengerContainer').parentElement.style.display = '';
+}
+
+
+ // Show hotel/car link input only for Hotel/Car
+const hotelCarLinkRow = document.getElementById('hotelCarLinkRow');
+const hotelCarLink = document.getElementById('hotelCarLink');
+
+if (selectedMain && selectedMain.key === 'hotelcar') {
+    hotelCarLinkRow.style.display = 'block';
+} else {
+    hotelCarLinkRow.style.display = 'none';
+    hotelCarLink.value = '';
+}
+
+// reset text + preview
+if (selectedMain && selectedMain.label === 'Points Transfer') {
+
+  requestDetails.value = `Sale ID: 45879 (Backoffice link)
+
+Bank Name:
+Card Type:
+Amount of Miles:
+Rate:
+Name on Account:
+Billing Address on the Account:
+Active Award Accounts:`;
+
+}
+// 👉 PETS (all variants)
+else if (selectedSub && selectedSub.key === 'pets') {
+
+  requestDetails.value = PETS_TEMPLATE;
+
+}
+// default
+else {
+  requestDetails.value = '';
+}
+
+previewPanel.textContent = '';
+previewPanel.classList.add('empty');
+
+buildPnrPassengerSelectors();
+
+selectorWrapper.style.display='none';
+formOverlay.style.display='flex';
+}  // <-- конец openForm()
+
+
+function closeFormModal(){
+  formOverlay.style.display='none';
+  selectorWrapper.style.display='none';
+  previewPanel.textContent='';
+  previewPanel.classList.add('empty');
+}
+
+function buildPnrPassengerSelectors(){
+  pnrContainer.innerHTML='';
+  PNR_DATA.forEach(p=>{
+    const row=document.createElement('div');
+    row.className='pnr-row';
+    const span=document.createElement('span');
+    span.className='pnr-label';
+    span.textContent = `${pnrDot(p.group)} ${p.label}`;
+    const cb=document.createElement('input');
+    cb.type='checkbox';
+    cb.checked=true;
+    cb.dataset.id=p.id;
+    row.appendChild(span);
+    row.appendChild(cb);
+    pnrContainer.appendChild(row);
+  });
+
+  passengerContainer.innerHTML='';
+  PASSENGERS.forEach(ps=>{
+    const row=document.createElement('div');
+    row.className='passenger-row';
+    const span=document.createElement('span');
+    span.className='passenger-label';
+    span.textContent=ps.name;
+    const cb=document.createElement('input');
+    cb.type='checkbox';
+    cb.checked=true;
+    cb.dataset.id=ps.id;
+    row.appendChild(span);
+    row.appendChild(cb);
+    passengerContainer.appendChild(row);
+  });
+}
+
+/* ---------- ROUTING LOGIC ---------- */
+function computeRouting(selectedPnrs){
+
+  // Force routing for Points Transfer
+  if (selectedMain && selectedMain.key === 'pointsTransfer') {
+      return ['Ticketing@TravelBusinessClass.com'];
+  }
+
+// Routing for Misc Request
+if (selectedMain && selectedMain.key === 'misc') {
+
+    let hasAwardOrOnline = false;
+    let hasRev = false;
+
+    selectedPnrs.forEach(p => {
+        if (p.group === 'award' || p.group === 'online') {
+            hasAwardOrOnline = true;
+        }
+        if (p.group === 'rev') {
+            hasRev = true;
+        }
+    });
+
+    // Case 1: Only Rev
+    if (hasRev && !hasAwardOrOnline) {
+        return ['CS@TravelBusinessClass.com'];
+    }
+
+    // Case 2: Only Award/Online
+    if (!hasRev && hasAwardOrOnline) {
+        return ['Ticketing@TravelBusinessClass.com'];
+    }
+
+    // Case 3: Mixed selection → both
+    if (hasRev && hasAwardOrOnline) {
+        return [
+            'CS@TravelBusinessClass.com',
+            'Ticketing@TravelBusinessClass.com'
+        ];
+    }
+}
+
+  const groups={rev:false,online:false,award:false};
+  let hasLHOnline=false;
+
+  selectedPnrs.forEach(p=>{
+    groups[p.group]=true;
+    if(p.group==='online' && p.airline==='LH') hasLHOnline=true;
+  });
+
+  const recipients=new Set();
+
+  const mainKey=selectedMain?selectedMain.key:null;
+
+  if(mainKey==='exchange'){
+    if(groups.rev) recipients.add('CS@TravelBusinessClass.com');
+    if(groups.award) recipients.add('Ticketing@TravelBusinessClass.com');
+    if(groups.online){
+      if(hasLHOnline) recipients.add('Ticketing@TravelBusinessClass.com');
+      else recipients.add('Rev.Ticketing@TravelBusinessClass.com');
+    }
+  }else if(mainKey==='refund'){
+    if(groups.rev) recipients.add('CS@TravelBusinessClass.com');
+    if(groups.award) recipients.add('Ticketing@TravelBusinessClass.com');
+    if(groups.online) recipients.add('Rev.Ticketing@TravelBusinessClass.com');
+  }else if(mainKey==='assignments' || mainKey==='hotelcar'){
+    if(groups.rev) recipients.add('Rev.Ticketing@TravelBusinessClass.com');
+    if(groups.award){
+      recipients.add('Ticketing@TravelBusinessClass.com');
+      recipients.add('Dilan@TravelBusinessClass.com');
+    }
+    if(groups.online) recipients.add('Rev.Ticketing@TravelBusinessClass.com');
+  }else if(mainKey==='voidRefund' || mainKey==='voidReissue'){
+    if(groups.rev) recipients.add('Rev.Ticketing@TravelBusinessClass.com');
+    if(groups.award) recipients.add('Ticketing@TravelBusinessClass.com');
+  }else if(mainKey==='urgent'){
+    if(groups.rev || groups.online) recipients.add('CS@TravelBusinessClass.com');
+    if(groups.award) recipients.add('Ticketing@TravelBusinessClass.com');
+  }else if(mainKey==='misc'){
+    recipients.add('CS@TravelBusinessClass.com');
+  }
+
+  return Array.from(recipients);
+}
+
+/* ---------- EMAIL GENERATION ---------- */
+function getSelectedPnrs(){
+  const ids=[...pnrContainer.querySelectorAll('input[type="checkbox"]')]
+    .filter(cb=>cb.checked)
+    .map(cb=>cb.dataset.id);
+  return PNR_DATA.filter(p=>ids.includes(p.id));
+}
+function getSelectedPassengers(){
+  const ids=[...passengerContainer.querySelectorAll('input[type="checkbox"]')]
+    .filter(cb=>cb.checked)
+    .map(cb=>cb.dataset.id);
+  return PASSENGERS.filter(p=>ids.includes(p.id));
+}
+
+function generateEmailPreview() {
+  const selectedPnrs = getSelectedPnrs();
+  const selectedPassengers = getSelectedPassengers();
+
+  // Skip validation for Points Transfer
+  if (!(selectedMain && selectedMain.label === 'Points Transfer')) {
+    if (selectedPnrs.length === 0 || selectedPassengers.length === 0) {
+      previewPanel.textContent = 'Please select at least one PNR and one passenger.';
+      previewPanel.classList.remove('empty');
+      routingHint.textContent = '';
+      return;
+    }
+  }
+
+  const recipients = computeRouting(selectedPnrs);
+
+// ---------- SUBJECT TYPE ----------
+let subjectType;
+
+if (selectedDetail) {
+  subjectType = `${selectedMain.label} / ${selectedDetail}`;
+} 
+else if (selectedSub) {
+  subjectType = `${selectedMain.label} / ${selectedSub.label}`;
+} 
+else {
+  subjectType = selectedMain.label;
+}
+
+// ---------- CATEGORY (only last selected) ----------
+const categoryValue = selectedDetail
+  ? selectedDetail
+  : selectedSub
+    ? selectedSub.label
+    : selectedMain.label;
+
+// ---------- PNR SHORT ----------
+const pnrShort = selectedPnrs.map(p => p.id).join(' / ');
+
+// ---------- SUBJECT ----------
+let subject;
+if (selectedMain && selectedMain.label === 'Points Transfer') {
+  subject = '45879 - Points Transfer';
+} else {
+  subject = `${pnrShort} - ${subjectType} - 24JAN`;
+}
+
+  const lines = [];
+  lines.push('Sale ID: 45879 (Backoffice link)', '');
+
+if (selectedMain && selectedMain.key === 'pointsTransfer') {
+
+    // Only passenger names — no PNRs, no tickets
+    selectedPassengers.forEach(ps => {
+        lines.push(ps.name);
+    });
+    lines.push('');
+
+} else {
+
+    // Default behavior (PNR + TKT)
+    selectedPnrs.forEach(p=>{
+    lines.push(`${pnrDot(p.group)} ${p.label}`);
+    selectedPassengers.forEach(ps=>{
+      const tkt = p.tickets[ps.id];
+      if (tkt) lines.push(`${ps.name} – ${tkt}`);
+    });
+    lines.push('');
+});
+}
+
+lines.push(`Category: ${categoryValue}`);
+lines.push('');
+
+// Insert clickable Website Link for Hotel/Car
+if (selectedMain && selectedMain.key === 'hotelcar') {
+    const hotelCarValue = document.getElementById('hotelCarLink').value.trim();
+
+    if (hotelCarValue) {
+
+        // Add protocol if missing
+        let safeLink = hotelCarValue;
+        if (!safeLink.startsWith('http://') && !safeLink.startsWith('https://')) {
+            safeLink = 'https://' + safeLink;
+        }
+
+        // Push a bright blue clickable link
+        lines.push(
+            `<a href="${safeLink}" target="_blank" style="color:#4DA3FF; text-decoration:underline; font-weight:700;">Website Link</a>`
+        );
+
+        lines.push('');
+    }
+}
+
+
+  if (financialRow.style.display !== 'none' && financialInput.value.trim()) {
+    lines.push('');
+    lines.push(`Financial instructions: ${financialInput.value.trim()}`);
+  }
+
+  const reqText = requestDetails.value || '';
+  lines.push('', 'Request details:');
+  reqText.split('\n').forEach(line => {
+    lines.push(line || ' ');
+  });
+
+  const bodyText = lines.map(l => '│ ' + l).join('\n');
+
+  function colorizeEmails(emails) {
+    return emails.map(email => {
+      if (email === 'CS@TravelBusinessClass.com') return `<span class="mail cs">${email}</span>`;
+      if (email === 'Ticketing@TravelBusinessClass.com') return `<span class="mail ticketing">${email}</span>`;
+      if (email === 'Rev.Ticketing@TravelBusinessClass.com') return `<span class="mail rev">${email}</span>`;
+      return email;
+    }).join(', ') || '(no routing match in prototype)';
+  }
+
+  const header = `To: ${colorizeEmails(recipients)}\nSubject: ${subject}\n\n`;
+  previewPanel.innerHTML = header + bodyText;
+  previewPanel.classList.remove('empty');
+  routingHint.textContent = '';
+}
+
+/* ---------- SUCCESS TOAST ---------- */
+function showSuccess(){
+  successToast.style.display='flex';
+  setTimeout(()=>{successToast.style.display='none';},2000);
+}
+
+/* ---------- RESET + ENTRY ---------- */
+function resetSelector(){
+  selectorWrapper.className = 'single';
+
+  // ❌ скрываем всё
+  colMain.classList.remove('visible');
+  colSub.classList.remove('visible');
+  colDetails.classList.remove('visible');
+
+  colSub.style.display = 'none';
+  colDetails.style.display = 'none';
+
+  subList.innerHTML = '';
+  detailsList.innerHTML = '';
+
+  highlightActive(mainList, null);
+
+  selectedMain = null;
+  selectedSub = null;
+  selectedDetail = null;
+}
+
+/* ---------- EVENT BINDINGS ---------- */
+createBtn.addEventListener('click',()=>{
+  resetSelector();
+
+  selectorWrapper.style.display = 'block';
+
+  // ✅ ВАЖНО: показать MAIN колонку
+  colMain.classList.add('visible');
+});
+
+backToTypes.addEventListener('click',()=>{
+  formOverlay.style.display='none';
+  selectorWrapper.style.display='block';
+});
+
+closeForm.addEventListener('click',closeFormModal);
+
+previewBtn.addEventListener('click',generateEmailPreview);
+
+sendBtn.addEventListener('click',()=>{
+  // In real system: send email.
+  showSuccess();
+  closeFormModal();
+});
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){
+    if(formOverlay.style.display==='flex') closeFormModal();
+  }
+});
+
+// ---------- FAB CREATE REQUEST ----------
+const fab = document.getElementById('fabRequest');
+
+fab.addEventListener('click', () => {
+  resetSelector();
+  selectorWrapper.style.display = 'block';
+  colMain.classList.add('visible');
+});
+
+
+/* ---------- INIT ---------- */
+buildMainList();
+
+
+
+
+</script>
+</body>
+</html>
