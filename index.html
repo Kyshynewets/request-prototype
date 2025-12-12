@@ -603,17 +603,19 @@ console.log("SCRIPT LOADED");
 /* ---------- CONFIG DATA ---------- */
 
 const EXCHANGE_TEMPLATES = {
-  rules: `Kindly provide the fare rules for the following PNR(s).
-Exchange / Refund / Cancel For Future Usage.`,
+  rules: `• Fare rules  
+Please provide the applicable fare rules, including exchange, refund, and cancel for future-usage conditions.`,
 
-  difference: `Please advise on the fare and tax difference, including any applicable change fees for the new option(s):
-  
-  #1
-  
-  
-  #2`,
+  difference: `• Fare and tax difference  
+Please advise on the fare and tax difference, including any applicable change fees, for the new option(s):
 
-  refund: `Please advise on the refundable amount for the selected ticket(s).`
+#1
+
+
+#2`,
+
+  refund: `• Refund inquiry  
+Please advise on the refundable amount for the selected ticket(s).`
 };
 
 function appendTemplate(text) {
